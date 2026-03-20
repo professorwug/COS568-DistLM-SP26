@@ -12,7 +12,7 @@ from fastcore.all import *
 
 def all_reduce_example(rank, size):
     """Simple collective communication."""
-    group = dist.new_group([0, 1, 2, 3])
+    group = dist.new_group([0, 1])
     tensor = torch.ones(1)
     dist.all_reduce(tensor, op=dist.ReduceOp.SUM, group=group)
     print("Rank ", rank, " has data ", tensor[0])
@@ -21,7 +21,7 @@ def all_reduce_example(rank, size):
 @call_parse
 def main(
     rank: int,  # node's position in 0...world_size-1
-    world_size: int = 4,
+    world_size: int = 2,
     master_addr: str = "della-vis1.princeton.edu",
 ):
     assert torch.distributed.is_available()

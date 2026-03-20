@@ -9,7 +9,7 @@ import torch.multiprocessing as mp
 from fastcore.all import *
 
 """ All-Reduce example."""
-device = torch.device("cuda")
+device = torch.device("cpu")
 
 
 def all_reduce_example(rank):
@@ -29,7 +29,7 @@ def main(
     assert torch.distributed.is_available()
     print(f"Initializing process group with rank {rank}")
     torch.distributed.init_process_group(
-        backend="nccl",
+        backend="gloo",
         rank=rank,
         world_size=world_size,
         init_method=f"tcp://{master_addr}:31343",

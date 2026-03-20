@@ -1,3 +1,4 @@
+import datetime
 import os
 import sys
 from mimetypes import init
@@ -22,7 +23,7 @@ def all_reduce_example(rank):
 def main(
     rank: int,  # node's position in 0...world_size-1
     world_size: int = 2,
-    master_addr: str = "della-vis1.princeton.edu",
+    master_addr: str = "della-vis1",
 ):
     assert torch.distributed.is_available()
     print(f"Initializing process group with rank {rank}")
@@ -30,7 +31,8 @@ def main(
         backend="nccl",
         rank=rank,
         world_size=world_size,
-        init_method=f"tcp://{master_addr}:13471",
+        init_method=f"tcp://{master_addr}:31343",
+        timeout=datetime.timedelta(seconds=30),
     )
     print(f"Running all_reduce example")
     all_reduce_example(rank)

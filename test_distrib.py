@@ -25,6 +25,7 @@ def main(
     rank: int,  # node's position in 0...world_size-1
     world_size: int = 2,
     master_addr: str = "della-vis1",
+    port: int = 13513,
 ):
     assert torch.distributed.is_available()
     print(f"Initializing process group with rank {rank}")
@@ -32,7 +33,7 @@ def main(
         backend="gloo",
         rank=rank,
         world_size=world_size,
-        init_method=f"tcp://{master_addr}:31343",
+        init_method=f"tcp://{master_addr}:{port}",
         timeout=datetime.timedelta(seconds=60),
     )
     print(f"pytorch device {device}, {torch.cuda.is_available()}")

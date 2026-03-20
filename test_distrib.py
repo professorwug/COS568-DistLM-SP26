@@ -9,12 +9,13 @@ import torch.multiprocessing as mp
 from fastcore.all import *
 
 """ All-Reduce example."""
+device = torch.device("cuda")
 
 
 def all_reduce_example(rank):
     """Simple collective communication."""
     group = dist.new_group([0, 1])
-    tensor = torch.ones(1)
+    tensor = torch.ones(1).to(device)
     dist.all_reduce(tensor, op=dist.ReduceOp.SUM, group=group)
     print("Rank ", rank, " has data ", tensor[0])
 
@@ -32,7 +33,8 @@ def main(
         rank=rank,
         world_size=world_size,
         init_method=f"tcp://{master_addr}:31343",
-        timeout=datetime.timedelta(seconds=30),
+        timeout=datetime.timedelta(seconds=60),
     )
+    print(f"pytorch device {device}, {torch.cuda.is_available()}")
     print(f"Running all_reduce example")
     all_reduce_example(rank)

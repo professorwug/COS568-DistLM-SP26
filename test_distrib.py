@@ -10,7 +10,7 @@ from fastcore.all import *
 """ All-Reduce example."""
 
 
-def all_reduce_example(rank, size):
+def all_reduce_example(rank):
     """Simple collective communication."""
     group = dist.new_group([0, 1])
     tensor = torch.ones(1)
@@ -25,10 +25,12 @@ def main(
     master_addr: str = "della-vis1.princeton.edu",
 ):
     assert torch.distributed.is_available()
+    print(f"Initializing process group with rank {rank}")
     torch.distributed.init_process_group(
         backend="nccl",
         rank=rank,
         world_size=world_size,
         init_method=f"tcp://{master_addr}:13471",
     )
+    print(f"Running all_reduce example")
     all_reduce_example(rank)

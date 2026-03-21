@@ -615,14 +615,14 @@ def main():
 
     # set up (distributed) training
     args.device = torch.device(
-        "cuda" if torch.cuda.is_available() and not args.no_cuda else "cpu"
+        "cpu" #"cuda" if torch.cuda.is_available() and not args.no_cuda else "cpu"
     )
     args.n_gpu = torch.cuda.device_count()
 
     assert torch.distributed.is_available()
     print(f"Initializing process group with rank {args.local_rank}")
     torch.distributed.init_process_group(
-        backend="nccl",
+        backend="gloo",
         rank=args.local_rank,
         world_size=4,
         init_method=f"tcp://{args.master_addr}:{args.master_port}",

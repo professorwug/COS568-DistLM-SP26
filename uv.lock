@@ -1,9 +1,6 @@
 version = 1
-revision = 2
+revision = 3
 requires-python = ">=3.13"
-
-[options]
-prerelease-mode = "allow"
 
 [[package]]
 name = "a2-dist-lm"
@@ -11,6 +8,7 @@ version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
     { name = "apex" },
+    { name = "fastcore" },
     { name = "lazygit" },
     { name = "numpy" },
     { name = "pytorch-transformers" },
@@ -24,6 +22,7 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "apex", specifier = ">=0.9.10.dev0" },
+    { name = "fastcore", specifier = ">=1.12.29" },
     { name = "lazygit", specifier = ">=1.1" },
     { name = "numpy", specifier = ">=2.4.3" },
     { name = "pytorch-transformers", specifier = ">=1.2.0" },
@@ -219,6 +218,15 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/5e/3b/b8849dcc3f96913924137dc4ea041d74aa513a3c5dda83d8366491290c74/defusedxml-0.8.0rc2.tar.gz", hash = "sha256:138c7d540a78775182206c7c97fe65b246a2f40b29471e1a2f1b0da76e7a3942", size = 52575, upload-time = "2023-09-29T08:01:27.517Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/5d/c7/6b4ad89ca6f7732ff97ce5e9caa6fe739600d26c5d53c20d0bf9abb79ec5/defusedxml-0.8.0rc2-py2.py3-none-any.whl", hash = "sha256:1c812964311154c3bf4aaf3bc1443b31ee13530b7f255eaaa062c0553c76103d", size = 25756, upload-time = "2023-09-29T08:01:25.515Z" },
+]
+
+[[package]]
+name = "fastcore"
+version = "1.12.29"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/bd/92/6786903b31dbd9ec12acb40f29c39742af57755ca355a72bbf6109596a68/fastcore-1.12.29.tar.gz", hash = "sha256:c1aeb123d807a05b29d8a8659fb77ce191279ed1ada7824adb5b3117e8698c34", size = 94205, upload-time = "2026-03-20T06:25:22.649Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/05/49/948ade42ead8cbda534107ec2c4c9b3f7a061856bc53ae2bb70b80a2bd2c/fastcore-1.12.29-py3-none-any.whl", hash = "sha256:7b63cab3a7036d435ab4516f39e8910a740ca3f1d688bf24c75db77fa2d8d6f7", size = 98376, upload-time = "2026-03-20T06:25:20.85Z" },
 ]
 
 [[package]]

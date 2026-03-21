@@ -6,6 +6,7 @@ readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
     "apex>=0.9.10.dev0",
+    "fastcore>=1.12.29",
     "lazygit>=1.1",
     "numpy>=2.4.3",
     "pytorch-transformers>=1.2.0",

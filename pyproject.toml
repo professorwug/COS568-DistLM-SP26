@@ -8,6 +8,7 @@ dependencies = [
     "apex>=0.9.10.dev0",
     "fastcore>=1.12.29",
     "lazygit>=1.1",
+    "matplotlib>=3.10.8",
     "numpy>=2.4.3",
     "pytorch-transformers>=1.2.0",
     "scikit-learn>=1.8.0",

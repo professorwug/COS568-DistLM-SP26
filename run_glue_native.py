@@ -655,6 +655,9 @@ def main():
     parser.add_argument(
         "--master_addr", type=str, default="della-k17g3", help="Address of node zero."
     )
+    parser.add_argument(
+        "--reduce_type", type=str, default="native", help=""
+    )
     parser.add_argument("--master_port", type=int, default=11347, help=".")
     args = parser.parse_args()
 

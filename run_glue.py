@@ -173,6 +173,7 @@ def train(args, train_dataset, model, tokenizer):
         int(args.num_train_epochs), desc="Epoch", disable=args.local_rank not in [-1, 0]
     )
     set_seed(args)  # Added here for reproductibility (even between python 2 and 3)
+    print("training beginning")
     for _ in train_iterator:
         epoch_iterator = tqdm(
             train_dataloader, desc="Iteration", disable=args.local_rank not in [-1, 0]
@@ -645,6 +646,7 @@ def main():
     label_list = processor.get_labels()
     num_labels = len(label_list)
 
+    logger.info("About to download model if necessary", args)
     # Load pretrained model and tokenizer
     if args.local_rank not in [-1, 0]:
         torch.distributed.barrier()  # Make sure only the first process in distributed training will download model & vocab

@@ -215,8 +215,7 @@ def train(args, train_dataset, model, tokenizer):
 
             if args.gradient_accumulation_steps > 1:
                 loss = loss / args.gradient_accumulation_steps
-            step_elapsed = time.perf_counter() - step_start
-            step_losses.append({"epoch": epoch_num, "step": step, "loss": loss.item(), "time_sec": step_elapsed})
+
             print(f"Minibatch {step}: Loss {loss}")
             if args.fp16:
                 with amp.scale_loss(loss, optimizer) as scaled_loss:
@@ -280,9 +279,12 @@ def train(args, train_dataset, model, tokenizer):
             if prof is not None:
                 prof.step()
 
+            step_elapsed = time.perf_counter() - step_start
+            step_losses.append({"epoch": epoch_num, "step": step, "loss": loss.item(), "time_sec": step_elapsed})
             if args.max_steps > 0 and global_step > args.max_steps:
                 epoch_iterator.close()
                 break
+
         if prof is not None:
             prof.__exit__(None, None, None)
             prof = None

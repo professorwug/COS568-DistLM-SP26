@@ -219,26 +219,32 @@ def train(args, train_dataset, model, tokenizer):
                 [p.grad.flatten() for p in model.parameters()]
             )
 
-            if args.local_rank == 0:
-                gather_list = [
-                    torch.zeros_like(
-                        big_ol_grad_tensor, device=big_ol_grad_tensor.device
-                    )
-                    for i in range(4)
-                ]
-            else:
-                gather_list = None
-            dist.gather(big_ol_grad_tensor, gather_list, dst=0)
-            mean_grads = sum(gather_list) / 4
-            scatter_list = [mean_grads for _ in range(4)]
-            gather_grads = torch.zeros_like(mean_grads)
-            dist.scatter(gather_grads, scatter_list, src=0)
+            if args.reduce_type=="gather":
+                if args.local_rank == 0:
+                    gather_list = [
+                        torch.zeros_like(
+                            big_ol_grad_tensor, device=big_ol_grad_tensor.device
+                        )
+                        for i in range(4)
+                    ]
+                else:
+                    gather_list = None
+                dist.gather(big_ol_grad_tensor, gather_list, dst=0)
+                mean_grads = sum(gather_list) / 4 if gather_list is not None else None
+                scatter_list = [mean_grads for _ in range(4)] if args.local_rank == 0 else None
+                gather_grads = torch.zeros_like(big_ol_grad_tensor)
+                dist.scatter(gather_grads, scatter_list, src=0)
+                final_grads = gather_grads
+            elif args.reduce_type == "all_reduce":
+                dist.all_reduce(big_ol_grad_tensor, op=ReduceOp.SUM)
+                final_grads = big_ol_grad_tensor / 4
+
             # TODO: batch size?
             # unpack back
             offset = 0
             for p in model.parameters():
                 p.grad.copy_(
-                    gather_grads[offset : offset + p.grad.numel()].view_as(p.grad)
+                    final_grads[offset : offset + p.grad.numel()].view_as(p.grad)
                 )
                 offset += p.grad.numel()
 
@@ -586,6 +592,9 @@ def main():
     parser.add_argument(
         "--master_addr", type=str, default="della-k17g3", help="Address of node zero."
     )
+    parser.add_argument(
+        "--reduce_type", type=str, default="gather", help=""
+    )
     parser.add_argument("--master_port", type=int, default=11347, help=".")
     args = parser.parse_args()
 
@@ -613,7 +622,7 @@ def main():
     assert torch.distributed.is_available()
     print(f"Initializing process group with rank {args.local_rank}")
     torch.distributed.init_process_group(
-        backend="gloo",
+        backend="nccl",
         rank=args.local_rank,
         world_size=4,
         init_method=f"tcp://{args.master_addr}:{args.master_port}",

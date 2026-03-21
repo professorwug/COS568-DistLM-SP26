@@ -236,7 +236,7 @@ def train(args, train_dataset, model, tokenizer):
                 dist.scatter(gather_grads, scatter_list, src=0)
                 final_grads = gather_grads
             elif args.reduce_type == "all_reduce":
-                dist.all_reduce(big_ol_grad_tensor, op=ReduceOp.SUM)
+                dist.all_reduce(big_ol_grad_tensor)
                 final_grads = big_ol_grad_tensor / 4
 
             # TODO: batch size?

@@ -242,7 +242,7 @@ def train(args, train_dataset, model, tokenizer):
             # )
 
             # if args.reduce_type=="gather":
-            #     if args.local_rank == 0:
+            #     if args.local_rRank == 0:
             #         gather_list = [
             #             torch.zeros_like(
             #                 big_ol_grad_tensor, device=big_ol_grad_tensor.device

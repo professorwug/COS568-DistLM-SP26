@@ -18,10 +18,15 @@ from __future__ import absolute_import, division, print_function
 
 import argparse
 import glob
+import json
 import logging
 import os
 import random
+import time
 
+import matplotlib
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
 import numpy as np
 import torch
 
@@ -159,16 +164,19 @@ def train(args, train_dataset, model, tokenizer):
 
     global_step = 0
     tr_loss, logging_loss = 0.0, 0.0
+    step_losses = []
+    epoch_metrics = []
     model.zero_grad()
     train_iterator = trange(
         int(args.num_train_epochs), desc="Epoch", disable=args.local_rank not in [-1, 0]
     )
     set_seed(args)  # Added here for reproductibility (even between python 2 and 3)
-    for _ in train_iterator:
+    for epoch_num, _ in enumerate(train_iterator):
         epoch_iterator = tqdm(
             train_dataloader, desc="Iteration", disable=args.local_rank not in [-1, 0]
         )
         for step, batch in enumerate(epoch_iterator):
+            step_start = time.perf_counter()
             model.train()
             batch = tuple(t.to(args.device) for t in batch)
             inputs = {
@@ -186,6 +194,8 @@ def train(args, train_dataset, model, tokenizer):
 
             if args.gradient_accumulation_steps > 1:
                 loss = loss / args.gradient_accumulation_steps
+            step_elapsed = time.perf_counter() - step_start
+            step_losses.append({"epoch": epoch_num, "step": step, "loss": loss.item(), "time_sec": step_elapsed})
             print(f"Minibatch {step}: Loss {loss}")
             if args.fp16:
                 with amp.scale_loss(loss, optimizer) as scaled_loss:
@@ -219,8 +229,42 @@ def train(args, train_dataset, model, tokenizer):
 
         ##################################################
         # TODO(cos568): call evaluate() here to get the model performance after every epoch. (expect one line of code)
-        evaluate(args, model, tokenizer, prefix="END OF AN EPOCH! ")
+        eval_results = evaluate(args, model, tokenizer, prefix="END OF AN EPOCH! ")
         ##################################################
+        epoch_metrics.append({"epoch": epoch_num, **eval_results})
+
+    # Save metrics to disk
+    metrics_dir = args.output_dir
+    os.makedirs(metrics_dir, exist_ok=True)
+    avg_time_per_step = sum(s["time_sec"] for s in step_losses) / len(step_losses) if step_losses else 0.0
+    metrics = {"avg_time_per_step_sec": avg_time_per_step, "step_losses": step_losses, "epoch_metrics": epoch_metrics}
+    with open(os.path.join(metrics_dir, "training_metrics_single.json"), "w") as f:
+        json.dump(metrics, f, indent=2)
+
+    # Plot and save loss curve
+    fig, ax = plt.subplots(figsize=(10, 6))
+    ax.plot([s["loss"] for s in step_losses], alpha=0.5, label="step loss")
+    ax.set_xlabel("Training Step")
+    ax.set_ylabel("Loss")
+    ax.set_title("Training Loss Curve")
+    ax.legend()
+    fig.tight_layout()
+    fig.savefig(os.path.join(metrics_dir, "loss_curve_single.png"), dpi=150)
+    plt.close(fig)
+
+    # Plot eval metrics per epoch
+    if epoch_metrics:
+        fig, ax = plt.subplots(figsize=(10, 6))
+        metric_keys = [k for k in epoch_metrics[0] if k != "epoch"]
+        for key in metric_keys:
+            ax.plot([m["epoch"] for m in epoch_metrics], [m[key] for m in epoch_metrics], marker="o", label=key)
+        ax.set_xlabel("Epoch")
+        ax.set_ylabel("Metric Value")
+        ax.set_title("Evaluation Metrics per Epoch")
+        ax.legend()
+        fig.tight_layout()
+        fig.savefig(os.path.join(metrics_dir, "eval_metrics_single.png"), dpi=150)
+        plt.close(fig)
 
     return global_step, tr_loss / global_step
 

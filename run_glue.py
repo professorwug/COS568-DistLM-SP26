@@ -233,43 +233,42 @@ def train(args, train_dataset, model, tokenizer):
 
             tr_loss += loss.item()
 
-            # In distributed training, we now aggregate the gradients
-            # For (2a), we synchronize them with gather and scatter
-            # collect gradients into one big tensor
-            big_ol_grad_tensor = torch.cat(
-                [p.grad.flatten() for p in model.parameters()]
-            )
-
-            if args.reduce_type=="gather":
-                if args.local_rank == 0:
-                    gather_list = [
-                        torch.zeros_like(
-                            big_ol_grad_tensor, device=big_ol_grad_tensor.device
-                        )
-                        for i in range(4)
-                    ]
-                else:
-                    gather_list = None
-                dist.gather(big_ol_grad_tensor, gather_list, dst=0)
-                mean_grads = sum(gather_list) / 4 if gather_list is not None else None
-                scatter_list = [mean_grads for _ in range(4)] if args.local_rank == 0 else None
-                gather_grads = torch.zeros_like(big_ol_grad_tensor)
-                dist.scatter(gather_grads, scatter_list, src=0)
-                final_grads = gather_grads
-            elif args.reduce_type == "all_reduce":
-                dist.all_reduce(big_ol_grad_tensor)
-                final_grads = big_ol_grad_tensor / 4
-
-            # TODO: batch size?
-            # unpack back
-            offset = 0
-            for p in model.parameters():
-                p.grad.copy_(
-                    final_grads[offset : offset + p.grad.numel()].view_as(p.grad)
-                )
-                offset += p.grad.numel()
 
             if (step + 1) % args.gradient_accumulation_steps == 0:
+                # In distributed training, we now aggregate the gradients
+                # For (2a), we synchronize them with gather and scatter
+                # collect gradients into one big tensor
+                big_ol_grad_tensor = torch.cat(
+                    [p.grad.flatten() for p in model.parameters()]
+                )
+
+                if args.reduce_type=="gather":
+                    if args.local_rank == 0:
+                        gather_list = [
+                            torch.zeros_like(
+                                big_ol_grad_tensor, device=big_ol_grad_tensor.device
+                            )
+                            for i in range(4)
+                        ]
+                    else:
+                        gather_list = None
+                    dist.gather(big_ol_grad_tensor, gather_list, dst=0)
+                    mean_grads = sum(gather_list) / 4 if gather_list is not None else None
+                    scatter_list = [mean_grads for _ in range(4)] if args.local_rank == 0 else None
+                    gather_grads = torch.zeros_like(big_ol_grad_tensor)
+                    dist.scatter(gather_grads, scatter_list, src=0)
+                    final_grads = gather_grads
+                elif args.reduce_type == "all_reduce":
+                    dist.all_reduce(big_ol_grad_tensor)
+                    final_grads = big_ol_grad_tensor / 4
+
+                # unpack back
+                offset = 0
+                for p in model.parameters():
+                    p.grad.copy_(
+                        final_grads[offset : offset + p.grad.numel()].view_as(p.grad)
+                    )
+                    offset += p.grad.numel()
                 ##################################################
                 # TODO(cos568): perform a single optimization step (parameter update) by invoking the optimizer (expect one line of code)
                 optimizer.step()
@@ -302,7 +301,7 @@ def train(args, train_dataset, model, tokenizer):
     os.makedirs(metrics_dir, exist_ok=True)
     avg_time_per_step = sum(s["time_sec"] for s in step_losses) / len(step_losses) if step_losses else 0.0
     metrics = {"avg_time_per_step_sec": avg_time_per_step, "step_losses": step_losses, "epoch_metrics": epoch_metrics}
-    with open(os.path.join(metrics_dir, f"training_metrics_{args.reduce_type}.json"), "w") as f:
+    with open(os.path.join(metrics_dir, f"training_metrics_{args.reduce_type}_rank{args.local_rank}.json"), "w") as f:
         json.dump(metrics, f, indent=2)
 
     # Plot and save loss curve
@@ -313,7 +312,7 @@ def train(args, train_dataset, model, tokenizer):
     ax.set_title("Training Loss Curve")
     ax.legend()
     fig.tight_layout()
-    fig.savefig(os.path.join(metrics_dir, f"loss_curve_{args.reduce_type}.png"), dpi=150)
+    fig.savefig(os.path.join(metrics_dir, f"loss_curve_{args.reduce_type}_rank{args.local_rank}.png"), dpi=150)
     plt.close(fig)
 
     # Plot eval metrics per epoch
@@ -327,7 +326,7 @@ def train(args, train_dataset, model, tokenizer):
         ax.set_title("Evaluation Metrics per Epoch")
         ax.legend()
         fig.tight_layout()
-        fig.savefig(os.path.join(metrics_dir, f"eval_metrics_{args.reduce_type}.png"), dpi=150)
+        fig.savefig(os.path.join(metrics_dir, f"eval_metrics_{args.reduce_type}_rank{args.local_rank}.png"), dpi=150)
         plt.close(fig)
 
     return global_step, tr_loss / global_step
@@ -736,7 +735,7 @@ def main():
     ##################################################
     # TODO(cos568): load the model using from_pretrained. Remember to pass in `config` as an argument.
     # If you pass in args.model_name_or_path (e.g. "bert-base-cased"), the model weights file will be downloaded from HuggingFace. (expect one line of code)
-    model = model_class.from_pretrained(args.model_name_or_path)
+    model = model_class.from_pretrained(args.model_name_or_path, config=config)
     ##################################################
 
     if args.local_rank == 0:

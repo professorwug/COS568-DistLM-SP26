@@ -238,9 +238,9 @@ def train(args, train_dataset, model, tokenizer):
             # In distributed training, we now aggregate the gradients
             # For (2a), we synchronize them with gather and scatter
             # collect gradients into one big tensor
-            big_ol_grad_tensor = torch.cat(
-                [p.grad.flatten() for p in model.parameters()]
-            )
+            # big_ol_grad_tensor = torch.cat(
+            #     [p.grad.flatten() for p in model.parameters()]
+            # )
 
             # if args.reduce_type=="gather":
             #     if args.local_rank == 0:
@@ -263,13 +263,13 @@ def train(args, train_dataset, model, tokenizer):
             #     final_grads = big_ol_grad_tensor / 4
 
             # TODO: batch size?
-            # unpack back
-            offset = 0
-            for p in model.parameters():
-                p.grad.copy_(
-                    final_grads[offset : offset + p.grad.numel()].view_as(p.grad)
-                )
-                offset += p.grad.numel()
+            # # unpack back
+            # offset = 0
+            # for p in model.parameters():
+            #     p.grad.copy_(
+            #         final_grads[offset : offset + p.grad.numel()].view_as(p.grad)
+            #     )
+            #     offset += p.grad.numel()
 
             if (step + 1) % args.gradient_accumulation_steps == 0:
                 ##################################################
